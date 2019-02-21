@@ -43,6 +43,10 @@ func main() {
 	// add/update todo
 	router.HandleFunc("/todo", AddToDo).Methods("POST", "PUT")
 
+	// get all todo or single todo by id
+	router.HandleFunc("/todo", GetToDo).Methods("GET")
+	router.HandleFunc("/todo/{id}", GetToDo).Methods("GET")
+
 	// perform system healt check
 	router.HandleFunc("/health", Health).Methods("GET")
 
@@ -76,4 +80,35 @@ func AddToDo(w http.ResponseWriter, r *http.Request) {
 	_ = c.Find(bson.M{"description": r.FormValue("description")}).One(&result)
 	// return result
 	json.NewEncoder(w).Encode(result)
+}
+
+// get todo by id
+func GetByID(id string) []ToDoItem {
+	var result ToDoItem
+	var res []ToDoItem
+	_ = c.Find(bson.M{"id": bson.ObjectIdHex(id)}).One(&result)
+	res = append(res, result)
+	return res
+}
+
+// get todo func
+func GetToDo(w http.ResponseWriter, r *http.Request) {
+	// result array
+	var resArr []ToDoItem
+
+	// get url params
+	params := mux.Vars(r)
+
+	// get todo id
+	id := params["id"]
+
+	// get todo/todo's
+	if id != "" {
+		resArr = GetByID(id)
+	} else {
+		_ = c.Find(nil).All(&resArr)
+	}
+
+	// return result array
+	json.NewEncoder(w).Encode(resArr)
 }
