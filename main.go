@@ -47,7 +47,10 @@ func main() {
 	router.HandleFunc("/todo", GetToDo).Methods("GET")
 	router.HandleFunc("/todo/{id}", GetToDo).Methods("GET")
 
-	// perform system healt check
+	// update todo state
+	router.HandleFunc("/todo/{id}", MarkDone).Methods("PATCH")
+
+	// perform system health check
 	router.HandleFunc("/health", Health).Methods("GET")
 
 	// start API Server
@@ -91,7 +94,7 @@ func GetByID(id string) []ToDoItem {
 	return res
 }
 
-// get todo func
+// get all todo item
 func GetToDo(w http.ResponseWriter, r *http.Request) {
 	// result array
 	var resArr []ToDoItem
@@ -111,4 +114,27 @@ func GetToDo(w http.ResponseWriter, r *http.Request) {
 
 	// return result array
 	json.NewEncoder(w).Encode(resArr)
+}
+
+// update todo state
+func MarkDone(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	// get the todo id and convert to bson id type
+	id := bson.ObjectIdHex(params["id"])
+
+	// update the db
+	err := c.Update(bson.M{"id": id}, bson.M{"$set": bson.M{"done": true}})
+
+	// if db update fails
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"updated": false, "error": `+err.Error()+`}`)
+	} else {
+		// update successful
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, `{"Updated": true}`)
+	}
 }
