@@ -50,6 +50,9 @@ func main() {
 	// update todo state
 	router.HandleFunc("/todo/{id}", MarkDone).Methods("PATCH")
 
+	// delete todo
+	router.HandleFunc("/todo/{id}", DeleteToDo).Methods("DELETE")
+
 	// perform system health check
 	router.HandleFunc("/health", Health).Methods("GET")
 
@@ -136,5 +139,22 @@ func MarkDone(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, `{"Updated": true}`)
+	}
+}
+
+// delete specific todo
+func DeleteToDo(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	// get the todo id and convert to bson id type
+	id := bson.ObjectIdHex(params["id"])
+
+	// revome from db
+	err := c.Remove(bson.M{"id": id})
+
+	if err == mgo.ErrNotFound {
+		json.NewEncoder(w).Encode(err.Error())
+	} else {
+		io.WriteString(w, "{result: 'OK'}")
 	}
 }
